@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Tournaments · OGC</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="./assets/css/styles.css"/>
+</head>
+<body class="bg-gray-50 text-gray-900">
+<header class="bg-white border-b">
+  <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+    <a href="./index.html" class="text-xl font-bold text-indigo-600">Online Game Center</a>
+    <nav class="flex items-center gap-4">
+      <a class="hover:text-indigo-600" href="./games.html">Games</a>
+      <a class="hover:text-indigo-600" href="./leaderboard.html">Leaderboard</a>
+      <a class="hover:text-indigo-600" href="./profile.html">Profile</a>
+    </nav>
+  </div>
+</header>
+
+<main class="max-w-6xl mx-auto px-4 py-6">
+  <h1 class="text-2xl font-bold mb-4">Tournaments</h1>
+
+  <div id="list" class="space-y-2"></div>
+</main>
+
+<script src="./assets/js/api.js"></script>
+<script>
+  requireLoginOrRedirect();
+  async function load(){
+    const {tournaments} = await api('tournaments.php?action=list');
+    const wrap = document.getElementById('list');
+    wrap.innerHTML='';
+    tournaments.forEach(t=>{
+      const el=document.createElement('div');
+      el.className='card bg-white flex justify-between';
+      el.innerHTML = `
+        <div>
+          <div class="font-semibold">${t.name} — ${t.game}</div>
+          <div class="text-sm text-gray-500">${new Date(t.starts_at).toLocaleString()} → ${new Date(t.ends_at).toLocaleString()}</div>
+          <div class="text-xs text-gray-500">Status: ${t.status}</div>
+        </div>
+        <button data-id="${t.id}" class="join px-3 py-1 bg-indigo-600 text-white rounded-lg">Register</button>`;
+      wrap.appendChild(el);
+    });
+    wrap.querySelectorAll('button.join').forEach(btn=>{
+      btn.addEventListener('click', async ()=>{
+        const fd=new FormData(); fd.append('tournament_id', btn.dataset.id);
+        const r=await fetch(__API_BASE__+'tournaments.php?action=register',{method:'POST', body:fd});
+        alert(r.ok?'Registered':'Failed');
+      });
+    });
+  }
+  load();
+</script>
+</body>
+</html>

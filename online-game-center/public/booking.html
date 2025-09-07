@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Book Slots · OGC</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="./assets/css/styles.css"/>
+</head>
+<body class="bg-gray-50 text-gray-900">
+<header class="bg-white border-b">
+  <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+    <a href="./index.html" class="text-xl font-bold text-indigo-600">Online Game Center</a>
+    <nav class="flex items-center gap-4">
+      <a class="hover:text-indigo-600" href="./games.html">Games</a>
+      <a class="hover:text-indigo-600" href="./profile.html">Profile</a>
+    </nav>
+  </div>
+</header>
+
+<main class="max-w-6xl mx-auto px-4 py-6">
+  <h1 class="text-2xl font-bold mb-4">Game Slot Booking</h1>
+
+  <div class="bg-white p-4 rounded-xl mb-4 grid md:grid-cols-5 gap-3 items-end">
+    <div><label class="block text-sm">Game ID</label><input id="gid" class="w-full border rounded p-2" placeholder="e.g., 1"/></div>
+    <div><label class="block text-sm">Start</label><input id="start" type="datetime-local" class="w-full border rounded p-2"/></div>
+    <div><label class="block text-sm">End</label><input id="end" type="datetime-local" class="w-full border rounded p-2"/></div>
+    <button id="create" class="px-4 py-2 bg-indigo-600 text-white rounded-lg">Create</button>
+  </div>
+
+  <h2 class="font-semibold mb-2">My Bookings</h2>
+  <div id="list" class="space-y-2"></div>
+</main>
+
+<script src="./assets/js/api.js"></script>
+<script>
+  requireLoginOrRedirect();
+
+  async function load() {
+  const r = await api('bookings.php?action=my');
+  const wrap = document.getElementById('list');
+  wrap.innerHTML = ''; // Clear existing bookings
+
+  // If no bookings, show appropriate message
+  if (r.bookings.length === 0) {
+    wrap.innerHTML = '<div class="text-gray-500">No bookings available. Book a slot!</div>';
+  } else {
+    // Loop through bookings and display them
+    r.bookings.forEach(b => {
+      const d = document.createElement('div');
+      d.className = 'card bg-white flex items-center justify-between';
+      d.innerHTML = `
+        <div>
+          <div class="font-semibold">${b.game}</div>
+          <div class="text-sm text-gray-500">${new Date(b.start_time).toLocaleString()} → ${new Date(b.end_time).toLocaleString()}</div>
+        </div>
+        <button data-id="${b.id}" class="cancel px-3 py-1 bg-white border rounded-lg ${b.status === 'cancelled' ? 'text-gray-500 cursor-not-allowed' : ''}" ${b.status === 'cancelled' ? 'disabled' : ''}>
+          ${b.status === 'cancelled' ? 'Cancelled' : 'Cancel'}
+        </button>`;
+      wrap.appendChild(d);
+    });
+
+    // Add event listeners for cancel buttons
+    wrap.querySelectorAll('button.cancel').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const fd = new FormData();
+        fd.append('booking_id', btn.dataset.id);
+        const res = await fetch(__API_BASE__ + 'bookings.php?action=cancel', { method: 'POST', body: fd });
+        const data = await res.json();
+
+        if (res.ok) {
+          // Refresh the bookings list after cancellation
+          load();  // Reload the bookings list
+        } else {
+          alert(data.error || 'Failed to cancel the booking');
+        }
+      });
+    });
+  }
+}
+
+  async function cancelBooking(bookingId) {
+    const fd = new FormData();
+    fd.append('booking_id', bookingId);
+
+    const res = await fetch(__API_BASE__ + 'bookings.php?action=cancel', { method: 'POST', body: fd });
+    const data = await res.json();
+
+    if (res.ok) {
+      alert(data.message);
+      load(); // Reload bookings after cancellation
+    } else {
+      alert(data.error || 'Failed to cancel the booking');
+    }
+  }
+
+  document.getElementById('create').addEventListener('click', async () => {
+    const fd = new FormData();
+    fd.append('game_id', document.getElementById('gid').value);
+    fd.append('start_time', document.getElementById('start').value.replace('T', ' ') + ':00');
+    fd.append('end_time', document.getElementById('end').value.replace('T', ' ') + ':00');
+    const r = await fetch(__API_BASE__ + 'bookings.php?action=create', { method: 'POST', body: fd });
+    const j = await r.json();
+    if (!r.ok) alert(j.error || 'Failed'); else load(); // Reload bookings after creating a new one
+  });
+
+  load(); // Initially load bookings when the page is loaded
+
+</script>
+</body>
+</html>

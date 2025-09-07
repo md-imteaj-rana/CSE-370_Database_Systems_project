@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Games · OGC</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="./assets/css/styles.css"/>
+</head>
+<body class="bg-gray-50 text-gray-900">
+<header class="bg-white border-b">
+  <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+    <a href="./index.html" class="text-xl font-bold text-indigo-600">Online Game Center</a>
+    <nav class="flex items-center gap-4">
+      <a class="hover:text-indigo-600" href="./library.html">Library</a>
+      <a class="hover:text-indigo-600" href="./tournaments.html">Tournaments</a>
+      <a class="hover:text-indigo-600" href="./profile.html">Profile</a>
+    </nav>
+  </div>
+</header>
+
+<main class="max-w-6xl mx-auto px-4 py-6">
+  <div class="flex items-end justify-between gap-4 mb-4">
+    <div>
+      <h1 class="text-2xl font-bold">Games</h1>
+      <p class="text-sm text-gray-600">Add games to your library. You can only play from your Library.</p>
+    </div>
+    <div class="flex gap-3 items-center">
+      <label class="text-sm text-gray-600">Genre</label>
+      <select id="genre" class="border rounded p-2 bg-white">
+        <option value="">All</option>
+      </select>
+      <input id="q" class="border rounded p-2" placeholder="Search title..."/>
+    </div>
+  </div>
+
+  <div id="list" class="grid md:grid-cols-3 gap-4"></div>
+</main>
+
+<script src="./assets/js/api.js"></script>
+<script>
+  requireLoginOrRedirect();
+
+  let allGames = [];
+
+  function card(g){
+    const div = document.createElement('div');
+    div.className='card bg-white';
+    div.innerHTML = `
+      <div class="flex items-center justify-between">
+        <div>
+          <div class="font-semibold">${g.title}</div>
+          <div class="text-sm text-gray-500">${g.platform} · ${g.genre||'—'}</div>
+        </div>
+        <button data-id="${g.id}" class="add px-3 py-1 bg-white border rounded-lg">Add</button>
+      </div>`;
+    return div;
+  }
+
+  function render(){
+    const wrap = document.getElementById('list');
+    const genre = document.getElementById('genre').value.trim();
+    const q = document.getElementById('q').value.trim().toLowerCase();
+
+    const filtered = allGames.filter(g=>{
+      const okGenre = !genre || (g.genre||'').toLowerCase() === genre.toLowerCase();
+      const okText = !q || g.title.toLowerCase().includes(q);
+      return okGenre && okText;
+    });
+
+    wrap.innerHTML = filtered.length ? '' : '<div class="text-gray-500">No games match your filter.</div>';
+    filtered.forEach(g => wrap.appendChild(card(g)));
+
+    wrap.querySelectorAll('button.add').forEach(b=>{
+      b.addEventListener('click', async ()=>{
+        const fd = new FormData(); fd.append('game_id', b.dataset.id);
+        const r = await fetch(__API_BASE__+'games.php?action=library_add', {method:'POST', body:fd});
+        alert(r.ok ? 'Added to library' : 'Failed');
+      });
+    });
+  }
+
+  async function load(){
+    // load genres
+    const g = await api('games.php?action=genres');
+    const sel = document.getElementById('genre');
+    (g.genres || []).forEach(name=>{
+      const opt = document.createElement('option'); opt.value = name; opt.textContent = name;
+      sel.appendChild(opt);
+    });
+
+    // load games
+    const res = await api('games.php?action=list');
+    allGames = res.games || [];
+    render();
+  }
+
+  document.getElementById('genre').addEventListener('change', render);
+  document.getElementById('q').addEventListener('input', render);
+  load();
+</script>
+</body>
+</html>

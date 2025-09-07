@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Leaderboard · OGC</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="./assets/css/styles.css"/>
+</head>
+<body class="bg-gray-50 text-gray-900">
+<header class="bg-white border-b">
+  <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+    <a href="./index.html" class="text-xl font-bold text-indigo-600">Online Game Center</a>
+    <nav class="flex items-center gap-4">
+      <a class="hover:text-indigo-600" href="./games.html">Games</a>
+      <a class="hover:text-indigo-600" href="./tournaments.html">Tournaments</a>
+      <a class="hover:text-indigo-600" href="./profile.html">Profile</a>
+    </nav>
+  </div>
+</header>
+
+<main class="max-w-6xl mx-auto px-4 py-6">
+  <h1 class="text-2xl font-bold mb-4">Rewards Leaderboard</h1>
+  <div class="bg-white rounded-xl p-4">
+    <table class="w-full text-left">
+      <thead><tr><th class="py-2">Player</th><th>Points</th></tr></thead>
+      <tbody id="lb"></tbody>
+    </table>
+  </div>
+</main>
+
+<script src="./assets/js/api.js"></script>
+<script>
+  async function load(){
+    const {leaderboard} = await api('leaderboard.php?action=rewards');
+    const tb=document.getElementById('lb'); tb.innerHTML='';
+    leaderboard.forEach(r=>{
+      const tr=document.createElement('tr');
+      tr.innerHTML=`<td class="py-2">${r.username}</td><td>${r.points}</td>`;
+      tb.appendChild(tr);
+    })
+  }
+  load();
+</script>
+</body>
+</html>

@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Profile · OGC</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="./assets/css/styles.css"/>
+</head>
+<body class="bg-gray-50 text-gray-900">
+<header class="bg-white border-b">
+  <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+    <a href="./index.html" class="text-xl font-bold text-indigo-600">Online Game Center</a>
+    <nav class="flex items-center gap-4">
+      <a class="hover:text-indigo-600" href="./games.html">Games</a>
+      <a class="hover:text-indigo-600" href="./leaderboard.html">Leaderboard</a>
+      <a class="hover:text-indigo-600" href="./login.html" id="logout">Logout</a>
+    </nav>
+  </div>
+</header>
+
+<main class="max-w-6xl mx-auto px-4 py-6">
+  <h1 class="text-2xl font-bold mb-4">My Profile</h1>
+
+  <div class="grid md:grid-cols-2 gap-6">
+    <section class="bg-white p-4 rounded-xl">
+      <h2 class="font-semibold mb-2">Account</h2>
+      <div id="me" class="text-sm text-gray-700"></div>
+    </section>
+    <section class="bg-white p-4 rounded-xl">
+      <h2 class="font-semibold mb-2">Rewards</h2>
+      <div id="points" class="text-3xl font-bold mb-2">0</div>
+      <p class="text-sm text-gray-600">Earn points by winning matches or submitting scores in mini-games.</p>
+    </section>
+  </div>
+
+  <section class="bg-white p-4 rounded-xl mt-6">
+    <h2 class="font-semibold mb-2">Match History</h2>
+    <div id="mhist" class="space-y-2"></div>
+  </section>
+
+  <section class="bg-white p-4 rounded-xl mt-6">
+  <h2 class="font-semibold mb-2">Registered Tournaments</h2>
+  <div id="tournaments" class="space-y-2"></div>
+  </section>
+
+</main>
+
+<script src="./assets/js/api.js"></script>
+<script src="./assets/js/api.js"></script>
+<script>
+  requireLoginOrRedirect();
+
+  document.getElementById('logout').addEventListener('click', async (e)=>{
+    e.preventDefault();
+    await fetch(__API_BASE__+'auth.php?action=logout', {method:'POST'});
+    location.href='./login.html';
+  });
+
+  async function load(){
+    const me = await api('auth.php?action=me');
+    const u = me.user;
+    document.getElementById('me').innerText = `${u.username} (${u.email}) — roles: ${u.roles || 'player'}`;
+
+    const lb = await api('leaderboard.php?action=rewards');
+    const my = lb.leaderboard.find(x => x.username === u.username);
+    document.getElementById('points').innerText = my ? my.points : 0;
+
+    // Fetch both Play History (from play_history table) + Tournament Matches
+    const hist = await api('matches.php?action=history');
+    const wrap = document.getElementById('mhist'); 
+    wrap.innerHTML = '';
+
+    // Display Play History (casual mini-games)
+    (hist.plays || []).forEach(p => {
+      const d = document.createElement('div');
+      d.className = 'card bg-white';
+      d.innerHTML = `
+        <div class="flex justify-between">
+          <div><div class="font-semibold">${p.game}</div>
+          <div class="text-sm text-gray-500">Played: ${new Date(p.played_at).toLocaleString()}</div></div>
+          <div class="text-right text-xs text-gray-500">Casual Game</div>
+        </div>`;
+      wrap.appendChild(d);
+    });
+
+    // Display Tournament Match History (1v1 matches)
+    (hist.matches || []).forEach(m => {
+      const d = document.createElement('div');
+      d.className = 'card bg-white';
+      d.innerHTML = `
+        <div class="flex justify-between">
+          <div><div class="font-semibold">${m.game}</div>
+          <div class="text-sm text-gray-500">Match ID: ${m.match_id} — Players: ${m.player1_id} vs ${m.player2_id}</div></div>
+          <div class="text-right">${m.status}${m.winner_id ? ' — Winner: Player #' + m.winner_id : ''}</div>
+        </div>`;
+      wrap.appendChild(d);
+    });
+
+    if (!wrap.children.length) {
+      wrap.innerHTML = '<div class="text-gray-500">No match history found. Play a game to track history!</div>';
+    }
+
+    //Fetch and display Registered Tournaments
+    const tournamentsWrap = document.getElementById('tournaments');
+    const tournaments = await api('tournaments.php?action=registered');
+    tournamentsWrap.innerHTML = '';  // Clear previous content
+
+    if (tournaments.tournaments.length) {
+      tournaments.tournaments.forEach(t => {
+        const d = document.createElement('div');
+        d.className = 'card bg-white';
+        d.innerHTML = `
+          <div class="flex justify-between">
+            <div>
+              <div class="font-semibold">${t.name}</div>
+              <div class="text-sm text-gray-500">
+                Starts: ${new Date(t.starts_at).toLocaleString()} <br>
+                Ends: ${new Date(t.ends_at).toLocaleString()}
+              </div>
+            </div>
+          </div>`;
+        tournamentsWrap.appendChild(d);
+      });
+    } else {
+      tournamentsWrap.innerHTML = '<div class="text-gray-500">You are not registered for any tournaments yet.</div>';
+    }
+  }
+
+  load();
+</script>
+
+</body>
+</html>
