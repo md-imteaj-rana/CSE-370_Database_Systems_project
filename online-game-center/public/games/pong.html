@@ -1,0 +1,102 @@
+<!doctype html><html lang="en"><head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Pong Duel</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head><body class="bg-gray-50 text-gray-900">
+<main class="max-w-lg mx-auto mt-8">
+  <h1 class="text-2xl font-bold mb-3">Pong Duel</h1>
+  <p class="text-sm text-gray-600 mb-2">Left: W/S · Right: Arrow Up/Down. First to 5 wins.</p>
+  <canvas id="cv" width="640" height="360" class="bg-white border rounded-xl"></canvas>
+  <div class="mt-3">Score: <span id="sL">0</span> - <span id="sR">0</span></div>
+</main>
+<script src="../assets/js/api.js"></script>
+<script>
+requireLoginOrRedirect();
+
+const TITLE='Pong Duel';
+let GAME_ID=null;
+
+async function ensureAllowed(){
+  // find id by title so we don't rely on fixed IDs
+  const {games} = await api('games.php?action=list');
+  const g = games.find(x=>x.title===TITLE);
+  if(!g){ alert('Game not found in DB.'); location.href='../library.html'; return false; }
+  GAME_ID = g.id;
+  const r = await api('games.php?action=can_play&game_id='+GAME_ID);
+  if(!r.allowed){ alert('Add "'+TITLE+'" to your library first.'); location.href='../library.html'; return false; }
+  return true;
+}
+
+(async ()=>{
+if(!(await ensureAllowed())) return;
+
+const c=document.getElementById('cv'), ctx=c.getContext('2d');
+let ball={x:c.width/2,y:c.height/2,vx:4,vy:3,r:7};
+let left={x:20,y:c.height/2-35,w:10,h:70,up:false,down:false,spd:5,score:0};
+let right={x:c.width-30,y:c.height/2-35,w:10,h:70,up:false,down:false,spd:5,score:0};
+
+document.addEventListener('keydown',e=>{
+  if(e.key==='w') left.up=true;
+  if(e.key==='s') left.down=true;
+  if(e.key==='ArrowUp') right.up=true;
+  if(e.key==='ArrowDown') right.down=true;
+});
+document.addEventListener('keyup',e=>{
+  if(e.key==='w') left.up=false;
+  if(e.key==='s') left.down=false;
+  if(e.key==='ArrowUp') right.up=false;
+  if(e.key==='ArrowDown') right.down=false;
+});
+
+function clampP(p){ if(p.y<0) p.y=0; if(p.y>c.height-p.h) p.y=c.height-p.h; }
+function reset(side){
+  ball.x=c.width/2; ball.y=c.height/2;
+  ball.vx = side==='L' ? 4 : -4;
+  ball.vy = (Math.random()*4+2) * (Math.random()<.5?-1:1);
+}
+async function win(who){
+  const pts = 100;
+  const fd=new FormData(); fd.append('game_id', GAME_ID); fd.append('score', pts);
+  await fetch(__API_BASE__+'scores.php?action=submit',{method:'POST', body:fd});
+  alert((who==='L'?'Left':'Right')+' player wins! +'+pts+' points.');
+  location.href='../library.html';
+}
+
+function tick(){
+  // move paddles
+  if(left.up) left.y-=left.spd; if(left.down) left.y+=left.spd; clampP(left);
+  if(right.up) right.y-=right.spd; if(right.down) right.y+=right.spd; clampP(right);
+
+  // move ball
+  ball.x+=ball.vx; ball.y+=ball.vy;
+
+  // walls
+  if(ball.y<ball.r || ball.y>c.height-ball.r) ball.vy*=-1;
+
+  // paddle collision
+  if(ball.x-ball.r<left.x+left.w && ball.y>left.y && ball.y<left.y+left.h && ball.vx<0){
+    ball.vx*=-1; ball.x=left.x+left.w+ball.r;
+  }
+  if(ball.x+ball.r>right.x && ball.y>right.y && ball.y<right.y+right.h && ball.vx>0){
+    ball.vx*=-1; ball.x=right.x-ball.r;
+  }
+
+  // scoring
+  if(ball.x<-10){ right.score++; document.getElementById('sR').textContent=right.score; reset('R'); }
+  if(ball.x>c.width+10){ left.score++; document.getElementById('sL').textContent=left.score; reset('L'); }
+
+  // draw
+  ctx.clearRect(0,0,c.width,c.height);
+  ctx.fillStyle='#e5e7eb'; for(let y=0;y<c.height;y+=20){ ctx.fillRect(c.width/2-1,y,2,10); }
+  ctx.fillStyle='#111827'; ctx.fillRect(left.x,left.y,left.w,left.h); ctx.fillRect(right.x,right.y,right.w,right.h);
+  ctx.beginPath(); ctx.arc(ball.x,ball.y,ball.r,0,Math.PI*2); ctx.fill();
+
+  if(left.score>=5) return win('L');
+  if(right.score>=5) return win('R');
+
+  requestAnimationFrame(tick);
+}
+tick();
+})();
+</script>
+</body></html>

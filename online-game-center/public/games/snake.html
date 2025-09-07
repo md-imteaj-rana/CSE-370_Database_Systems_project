@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Snake Classic</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 text-gray-900">
+  <main class="max-w-lg mx-auto mt-8">
+    <h1 class="text-2xl font-bold mb-3">Snake Classic</h1>
+    <canvas id="c" width="400" height="400" class="bg-white rounded-xl border"></canvas>
+    <div class="mt-3">Score: <span id="score">0</span></div>
+    <p class="text-sm text-gray-600">Arrow keys to move.</p>
+  </main>
+  <script src="../assets/js/api.js"></script>
+  <script src="../assets/js/api.js"></script>
+  <script>
+    requireLoginOrRedirect();
+    // block if not in library
+    (async ()=>{
+      const r = await api('games.php?action=can_play&game_id=1');
+      if(!r.allowed){ alert('Add Snake Classic to your library first.'); location.href='../library.html'; }
+    })();
+  </script>
+
+  <script>
+    requireLoginOrRedirect();
+    const canvas = document.getElementById('c'), ctx=canvas.getContext('2d');
+    let grid=20, snake=[{x:160,y:160}], dx=grid, dy=0, apple={x:320,y:320}, score=0, loop, over=false;
+    function rnd(){ return Math.floor(Math.random()*20)*grid; }
+    document.addEventListener('keydown', e=>{
+      if(e.key==='ArrowLeft' && dx===0){dx=-grid;dy=0}
+      else if(e.key==='ArrowRight' && dx===0){dx=grid;dy=0}
+      else if(e.key==='ArrowUp' && dy===0){dy=-grid;dx=0}
+      else if(e.key==='ArrowDown' && dy===0){dy=grid;dx=0}
+    });
+    function place(){ apple.x=rnd(); apple.y=rnd(); }
+    function tick(){
+      if(over) return;
+      const head={x:snake[0].x+dx,y:snake[0].y+dy};
+      if(head.x<0||head.x>=400||head.y<0||head.y>=400) return end();
+      for(const s of snake){ if(s.x===head.x && s.y===head.y) return end(); }
+      snake.unshift(head);
+      if(head.x===apple.x && head.y===apple.y){ score+=10; document.getElementById('score').textContent=score; place(); }
+      else snake.pop();
+      ctx.clearRect(0,0,400,400);
+      ctx.fillStyle='#ef4444'; ctx.fillRect(apple.x,apple.y,grid-2,grid-2);
+      ctx.fillStyle='#10b981'; snake.forEach(s=>ctx.fillRect(s.x,s.y,grid-2,grid-2));
+    }
+    async function end(){
+      over=true; clearInterval(loop);
+      const fd=new FormData(); fd.append('game_id', 1); fd.append('score', score);
+      await fetch(__API_BASE__+'scores.php?action=submit', {method:'POST', body:fd});
+      alert('Game over! Score saved: '+score);
+    }
+    place(); loop=setInterval(tick,100);
+  </script>
+</body>
+</html>

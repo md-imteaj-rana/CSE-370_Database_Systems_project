@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Sign up · OGC</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="./assets/css/styles.css"/>
+</head>
+<body class="bg-gray-50 text-gray-900">
+  <main class="max-w-md mx-auto mt-12 bg-white p-6 rounded-xl shadow-sm">
+    <h1 class="text-2xl font-bold mb-4">Create account</h1>
+    <form id="f" class="space-y-3">
+      <div><label class="block text-sm mb-1">Email</label><input name="email" type="email" class="w-full border rounded p-2" required></div>
+      <div><label class="block text-sm mb-1">Username</label><input name="username" class="w-full border rounded p-2" required></div>
+      <div><label class="block text-sm mb-1">Password</label><input name="password" type="password" minlength="6" class="w-full border rounded p-2" required></div>
+      <button class="w-full bg-indigo-600 text-white py-2 rounded-lg">Create account</button>
+    </form>
+    <p class="text-sm mt-3">Already have an account? <a class="link" href="./login.html">Sign in</a></p>
+  </main>
+  <script src="./assets/js/api.js"></script>
+  <script>
+    document.getElementById('f').addEventListener('submit', async e=>{
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      const r = await fetch(__API_BASE__ + 'auth.php?action=register', {method:'POST', body:fd});
+      if (r.ok) location.href='./games.html'; else alert('Signup failed');
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Online Game Center</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="./assets/css/styles.css"/>
+</head>
+<body class="bg-gray-50 text-gray-900">
+  <header class="bg-white border-b">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+      <a href="./index.html" class="text-xl font-bold text-indigo-600">Online Game Center</a>
+      <nav class="flex items-center gap-4">
+        <a class="hover:text-indigo-600" href="./games.html">Games</a>
+        <a class="hover:text-indigo-600" href="./library.html">Library</a>
+        <a class="hover:text-indigo-600" href="./booking.html">Book Slots</a>
+        <a class="hover:text-indigo-600" href="./tournaments.html">Tournaments</a>
+        <a class="hover:text-indigo-600" href="./leaderboard.html">Leaderboard</a>
+        <a class="hover:text-indigo-600" href="./profile.html">Profile</a>
+        <a class="hover:text-indigo-600" href="./admin.html">Admin</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-4 py-8 grid md:grid-cols-2 gap-6 items-center">
+    <section>
+      <h1 class="text-3xl font-bold mb-2">Play online. Book slots. Join tournaments.</h1>
+      <p class="text-gray-600 mb-4">Log in to access games, reserve time slots, compete 1v1, and earn rewards.</p>
+      <div class="flex gap-3">
+        <a href="./login.html" class="px-4 py-2 bg-indigo-600 text-white rounded-lg">Sign in</a>
+        <a href="./signup.html" class="px-4 py-2 bg-white border rounded-lg">Create account</a>
+      </div>
+    </section>
+    <section class="card bg-white">
+      <h2 class="font-semibold mb-2">Quick Links</h2>
+      <ul class="list-disc ml-5 space-y-1">
+        <li><a class="link" href="./games.html">Browse Games</a></li>
+        <li><a class="link" href="./booking.html">Book a Slot</a></li>
+        <li><a class="link" href="./tournaments.html">Ongoing Tournaments</a></li>
+        <li><a class="link" href="./leaderboard.html">Rewards Leaderboard</a></li>
+      </ul>
+    </section>
+  </main>
+
+  <script src="./assets/js/api.js"></script>
+  <script src="./assets/js/app.js"></script>
+</body>
+</html>

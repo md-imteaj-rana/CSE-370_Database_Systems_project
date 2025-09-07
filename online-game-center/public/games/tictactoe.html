@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Tic Tac Toe</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 text-gray-900">
+  <main class="max-w-sm mx-auto mt-8">
+    <h1 class="text-2xl font-bold mb-3">Tic Tac Toe</h1>
+    <div id="board" class="grid grid-cols-3 gap-2 w-64">
+      <button class="cell bg-white border h-16 text-2xl"></button><button class="cell bg-white border h-16 text-2xl"></button><button class="cell bg-white border h-16 text-2xl"></button>
+      <button class="cell bg-white border h-16 text-2xl"></button><button class="cell bg-white border h-16 text-2xl"></button><button class="cell bg-white border h-16 text-2xl"></button>
+      <button class="cell bg-white border h-16 text-2xl"></button><button class="cell bg-white border h-16 text-2xl"></button><button class="cell bg-white border h-16 text-2xl"></button>
+    </div>
+    <p class="text-sm text-gray-600 mt-3">Local 2-player. Winner triggers a small reward.</p>
+  </main>
+  <script src="../assets/js/api.js"></script>
+  <script src="../assets/js/api.js"></script>
+  <script>
+    requireLoginOrRedirect();
+    (async ()=>{
+      const r = await api('games.php?action=can_play&game_id=2');
+      if(!r.allowed){ alert('Add Tic Tac Toe to your library first.'); location.href='../library.html'; }
+    })();
+  </script>
+
+  <script>
+    requireLoginOrRedirect();
+    const cells=[...document.querySelectorAll('.cell')]; let turn='X', done=false;
+    const wins=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+    function check(){
+      for(const [a,b,c] of wins){
+        if(cells[a].textContent && cells[a].textContent===cells[b].textContent && cells[a].textContent===cells[c].textContent){ return cells[a].textContent; }
+      }
+      if(cells.every(c=>c.textContent)) return 'D';
+      return null;
+    }
+    cells.forEach(cell=>cell.addEventListener('click', async ()=>{
+      if(done || cell.textContent) return;
+      cell.textContent = turn;
+      turn = turn==='X' ? 'O' : 'X';
+      const r = check();
+      if (r){
+        done = true;
+        if (r!=='D'){
+          const fd=new FormData(); fd.append('game_id', 2); fd.append('score', 100);
+          await fetch(__API_BASE__+'scores.php?action=submit', {method:'POST', body:fd});
+          alert(r+' wins! Rewards added.');
+        } else {
+          alert('Draw.');
+        }
+      }
+    }));
+  </script>
+</body>
+</html>

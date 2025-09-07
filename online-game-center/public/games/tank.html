@@ -1,0 +1,84 @@
+<!doctype html><html lang="en"><head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Tank Duel</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head><body class="bg-gray-50 text-gray-900">
+<main class="max-w-lg mx-auto mt-8">
+  <h1 class="text-2xl font-bold mb-3">Tank Duel</h1>
+  <p class="text-sm text-gray-600 mb-2">Blue: WASD + F (fire) · Red: Arrows + / (slash to fire). First to 3 hits wins.</p>
+  <canvas id="cv" width="640" height="400" class="bg-white border rounded-xl"></canvas>
+</main>
+<script src="../assets/js/api.js"></script>
+<script>
+requireLoginOrRedirect();
+const TITLE='Tank Duel'; let GAME_ID=null;
+
+async function ensureAllowed(){
+  const {games}=await api('games.php?action=list');
+  const g=games.find(x=>x.title===TITLE); if(!g){ alert('Game not found.'); location.href='../library.html'; return false; }
+  GAME_ID=g.id; const r=await api('games.php?action=can_play&game_id='+GAME_ID);
+  if(!r.allowed){ alert('Add "'+TITLE+'" to your library first.'); location.href='../library.html'; return false; }
+  return true;
+}
+
+(async ()=>{
+if(!(await ensureAllowed())) return;
+
+const c=cv, ctx=c.getContext('2d');
+const B={x:80,y:c.height/2,w:20,h:20,ax:0,ay:0,spd:2,color:'#3b82f6',score:0,keys:{up:'w',down:'s',left:'a',right:'d',fire:'f'}};
+const R={x:c.width-100,y:c.height/2,w:20,h:20,ax:0,ay:0,spd:2,color:'#ef4444',score:0,keys:{up:'ArrowUp',down:'ArrowDown',left:'ArrowLeft',right:'ArrowRight',fire:'/'}};
+let bullets=[];
+
+const down={}; document.addEventListener('keydown',e=>down[e.key]=true);
+document.addEventListener('keyup',e=>down[e.key]=false);
+
+function move(t){
+  if(down[t.keys.up]) t.ay=-t.spd; else if(down[t.keys.down]) t.ay=t.spd; else t.ay=0;
+  if(down[t.keys.left]) t.ax=-t.spd; else if(down[t.keys.right]) t.ax=t.spd; else t.ax=0;
+  t.x+=t.ax; t.y+=t.ay;
+  if(t.x<0)t.x=0; if(t.x>c.width-t.w)t.x=c.width-t.w; if(t.y<0)t.y=0; if(t.y>c.height-t.h)t.y=c.height-t.h;
+  if(down[t.keys.fire] && !t._cool){ fire(t); t._cool=1; setTimeout(()=>t._cool=0,300); }
+}
+function fire(t){
+  const dirX = t===B ? 1 : -1;
+  bullets.push({x:t.x + (dirX>0?t.w:0), y:t.y+t.h/2-2, vx:dirX*6, vy:0, w:6, h:4, owner:t});
+}
+function hit(a,b){ return a.x<b.x+b.w && a.x+a.w>b.x && a.y<b.y+b.h && a.y+a.h>b.y; }
+
+async function win(name){
+  const pts=120; const fd=new FormData(); fd.append('game_id', GAME_ID); fd.append('score', pts);
+  await fetch(__API_BASE__+'scores.php?action=submit',{method:'POST', body:fd});
+  alert(name+' wins! +'+pts+' points.'); location.href='../library.html';
+}
+
+function tick(){
+  move(B); move(R);
+  bullets.forEach(b=>{ b.x+=b.vx; b.y+=b.vy; });
+  bullets = bullets.filter(b=>b.x>-20 && b.x<c.width+20);
+
+  // collisions
+  bullets.forEach(b=>{
+    if(b.owner!==B && hit(b,B)){ R.score++; b.x=-999; }
+    if(b.owner!==R && hit(b,R)){ B.score++; b.x=-999; }
+  });
+  bullets = bullets.filter(b=>b.x>-900);
+
+  // draw
+  ctx.clearRect(0,0,c.width,c.height);
+  ctx.fillStyle='#e5e7eb'; ctx.fillRect(c.width/2-2,0,4,c.height);
+  ctx.fillStyle=B.color; ctx.fillRect(B.x,B.y,B.w,B.h);
+  ctx.fillStyle=R.color; ctx.fillRect(R.x,R.y,R.w,R.h);
+  ctx.beginPath(); ctx.arc(B.x,B.y,B.w/2,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(R.x,R.y,R.w/2,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#111827'; bullets.forEach(b=>ctx.fillRect(b.x,b.y,b.w,b.h));
+  ctx.font='16px sans-serif'; ctx.fillText('Blue:'+B.score,10,20); ctx.fillText('Red:'+R.score,c.width-80,20);
+
+  if(B.score>=3) return win('Blue');
+  if(R.score>=3) return win('Red');
+
+  requestAnimationFrame(tick);
+}
+tick();
+})();
+</script>
+</body></html>

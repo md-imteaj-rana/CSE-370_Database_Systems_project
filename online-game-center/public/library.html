@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Library · OGC</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="./assets/css/styles.css"/>
+</head>
+<body class="bg-gray-50 text-gray-900">
+<header class="bg-white border-b">
+  <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+    <a href="./index.html" class="text-xl font-bold text-indigo-600">Online Game Center</a>
+    <nav class="flex items-center gap-4">
+      <a class="hover:text-indigo-600" href="./games.html">Games</a>
+      <a class="hover:text-indigo-600" href="./profile.html">Profile</a>
+    </nav>
+  </div>
+</header>
+
+<main class="max-w-6xl mx-auto px-4 py-6">
+  <h1 class="text-2xl font-bold mb-4">My Library</h1>
+  <div id="list" class="grid md:grid-cols-3 gap-4"></div>
+</main>
+
+<script src="./assets/js/api.js"></script>
+<script>
+  requireLoginOrRedirect();
+
+  function playLink(title){
+    if(title==='Snake Classic')  return './games/snake.html';
+    if(title==='Tic Tac Toe')    return './games/tictactoe.html';
+    if(title==='Breakout JS')    return './games/breakout.html';
+    if(title==='Pong Duel')      return './games/pong.html';
+    if(title==='Tank Duel')      return './games/tank.html';
+    if(title==='Connect Four')   return './games/connect4.html';
+    if(title==='Gomoku')         return './games/gomoku.html';
+    return null;
+  }
+
+  async function load(){
+    const {library} = await api('games.php?action=my_library');
+    const wrap = document.getElementById('list');
+    wrap.innerHTML = library.length ? '' : '<div class="text-gray-500">Your library is empty. Go to <a class="link" href="./games.html">Games</a> to add some.</div>';
+    library.forEach(g=>{
+      const link = playLink(g.title);
+      const div = document.createElement('div');
+      div.className='card bg-white';
+      div.innerHTML = `
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="font-semibold">${g.title}</div>
+            <div class="text-sm text-gray-500">${g.platform}</div>
+          </div>
+          <div class="flex gap-2">
+            ${link ? `<a class="px-3 py-1 bg-indigo-600 text-white rounded-lg" href="${link}">Play</a>` : ``}
+            <button data-id="${g.id}" class="rm px-3 py-1 bg-white border rounded-lg">Remove</button>
+          </div>
+        </div>`;
+      wrap.appendChild(div);
+    });
+    wrap.querySelectorAll('button.rm').forEach(b=>{
+      b.addEventListener('click', async ()=>{
+        const fd = new FormData(); fd.append('game_id', b.dataset.id);
+        await fetch(__API_BASE__+'games.php?action=library_remove', {method:'POST', body:fd});
+        load();
+      });
+    });
+  }
+  load();
+</script>
+</body>
+</html>
