@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Admin · OGC</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="./assets/css/styles.css"/>
+</head>
+<body class="bg-gray-50 text-gray-900">
+<header class="bg-white border-b">
+  <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+    <a href="./index.html" class="text-xl font-bold text-indigo-600">Online Game Center</a>
+  </div>
+</header>
+
+<main class="max-w-6xl mx-auto px-4 py-6">
+  <h1 class="text-2xl font-bold mb-4">Admin</h1>
+  <p class="text-sm text-gray-600 mb-4">This is a placeholder page. Admin endpoints can be added later as needed.</p>
+
+  <!-- Admin Section: Change Password & Delete Account -->
+<section class="bg-white p-4 rounded-xl mt-6">
+  <h2 class="font-semibold mb-2">Account Settings</h2>
+
+  <!-- Change Password Form -->
+  <div class="mb-4">
+    <h3 class="text-lg font-semibold">Change Password</h3>
+    <input id="current-password" type="password" class="w-full border rounded p-2 mb-2" placeholder="Current Password"/>
+    <input id="new-password" type="password" class="w-full border rounded p-2 mb-2" placeholder="New Password"/>
+    <input id="confirm-password" type="password" class="w-full border rounded p-2 mb-2" placeholder="Confirm New Password"/>
+    <button id="change-password" class="px-4 py-2 bg-blue-600 text-white rounded-lg">Change Password</button>
+  </div>
+
+  <!-- Delete Account Button -->
+  <div>
+    <h3 class="text-lg font-semibold text-red-600">Delete Account</h3>
+    <button id="delete-account" class="px-4 py-2 bg-red-600 text-white rounded-lg">Delete My Account</button>
+  </div>
+  </section>
+
+</main>
+
+<script src="./assets/js/api.js"></script>
+<script>requireLoginOrRedirect();
+  document.getElementById('change-password').addEventListener('click', async () => {
+  const currentPassword = document.getElementById('current-password').value;
+  const newPassword = document.getElementById('new-password').value;
+  const confirmPassword = document.getElementById('confirm-password').value;
+
+  if (!currentPassword || !newPassword || !confirmPassword) {
+    alert('All fields are required');
+    return;
+  }
+
+  if (newPassword !== confirmPassword) {
+    alert('New password and confirmation do not match');
+    return;
+  }
+
+  const fd = new FormData();
+  fd.append('current_password', currentPassword);
+  fd.append('new_password', newPassword);
+  fd.append('confirm_password', confirmPassword);
+
+  const res = await fetch(__API_BASE__ + 'auth.php?action=change-password', { method: 'POST', body: fd });
+  const data = await res.json();
+
+  if (res.ok) {
+    alert(data.message);
+  } else {
+    alert(data.error || 'Failed to change password');
+  }
+});
+
+document.getElementById('delete-account').addEventListener('click', async () => {
+  const confirmDelete = confirm('Are you sure you want to delete your account? This action cannot be undone.');
+
+  if (!confirmDelete) return;
+
+  const res = await fetch(__API_BASE__ + 'auth.php?action=delete-account', { method: 'POST' });
+  const data = await res.json();
+
+  if (res.ok) {
+    alert(data.message);
+    location.href = './login.html';  // Redirect to login page after deletion
+  } else {
+    alert(data.error || 'Failed to delete account');
+  }
+  });
+
+</script>
+</body>
+</html>

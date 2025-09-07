@@ -1,0 +1,75 @@
+<!doctype html><html lang="en"><head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Connect Four</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head><body class="bg-gray-50 text-gray-900">
+<main class="max-w-md mx-auto mt-8">
+  <h1 class="text-2xl font-bold mb-3">Connect Four</h1>
+  <p class="text-sm text-gray-600 mb-2">Click a column to drop your disc. Red starts. First to 4 in a row wins.</p>
+  <canvas id="cv" width="350" height="300" class="bg-white border rounded-xl"></canvas>
+</main>
+<script src="../assets/js/api.js"></script>
+<script>
+requireLoginOrRedirect();
+const TITLE='Connect Four'; let GAME_ID=null;
+async function ensureAllowed(){
+  const {games}=await api('games.php?action=list');
+  const g=games.find(x=>x.title===TITLE); if(!g){ alert('Game not found.'); location.href='../library.html'; return false; }
+  GAME_ID=g.id; const r=await api('games.php?action=can_play&game_id='+GAME_ID);
+  if(!r.allowed){ alert('Add "'+TITLE+'" to your library first.'); location.href='../library.html'; return false; }
+  return true;
+}
+
+(async ()=>{
+if(!(await ensureAllowed())) return;
+
+const COLS=7, ROWS=6, c=cv, ctx=c.getContext('2d');
+const W=c.width, H=c.height; const cw=W/COLS, ch=H/ROWS;
+const grid=[...Array(ROWS)].map(()=>Array(COLS).fill(0));
+let turn=1, over=false;
+
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='#0ea5e9'; ctx.fillRect(0,0,W,H);
+  for(let r=0;r<ROWS;r++){
+    for(let col=0;col<COLS;col++){
+      const x=col*cw+cw/2, y=r*ch+ch/2;
+      ctx.beginPath(); ctx.arc(x,y,Math.min(cw,ch)/2-6,0,Math.PI*2);
+      ctx.fillStyle = grid[r][col]===0 ? '#ffffff' : (grid[r][col]===1 ? '#ef4444' : '#3b82f6');
+      ctx.fill();
+    }
+  }
+}
+function drop(col){
+  if(over) return;
+  for(let r=ROWS-1;r>=0;r--){
+    if(grid[r][col]===0){ grid[r][col]=turn; turn=turn===1?2:1; check(); draw(); return; }
+  }
+}
+function check(){
+  const D=[[1,0],[0,1],[1,1],[1,-1]];
+  function inside(r,c){ return r>=0&&r<ROWS&&c>=0&&c<COLS; }
+  for(let r=0;r<ROWS;r++) for(let c2=0;c2<COLS;c2++){
+    const p=grid[r][c2]; if(!p) continue;
+    for(const [dr,dc] of D){
+      let k=1; while(inside(r+dr*k,c2+dc*k) && grid[r+dr*k][c2+dc*k]===p) k++;
+      if(k>=4) return end(p);
+    }
+  }
+  // draw?
+  if(grid.every(row=>row.every(v=>v!==0))) { alert('Draw.'); over=true; }
+}
+async function end(player){
+  over=true;
+  const pts=100; const fd=new FormData(); fd.append('game_id', GAME_ID); fd.append('score', pts);
+  await fetch(__API_BASE__+'scores.php?action=submit',{method:'POST', body:fd});
+  alert((player===1?'Red':'Blue')+' wins! +'+pts+' points.'); location.href='../library.html';
+}
+c.addEventListener('click',e=>{
+  const rect=c.getBoundingClientRect(); const x=e.clientX-rect.left;
+  const col=Math.floor(x/cw); drop(col);
+});
+draw();
+})();
+</script>
+</body></html>

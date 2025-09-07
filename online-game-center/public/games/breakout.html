@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Breakout JS</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 text-gray-900">
+  <main class="max-w-lg mx-auto mt-8">
+    <h1 class="text-2xl font-bold mb-3">Breakout JS</h1>
+    <canvas id="bx" width="480" height="320" class="bg-white rounded-xl border"></canvas>
+    <div class="mt-3">Score: <span id="s">0</span></div>
+  </main>
+  <script src="../assets/js/api.js"></script>
+  <script src="../assets/js/api.js"></script>
+  <script>
+    requireLoginOrRedirect();
+    (async ()=>{
+      const r = await api('games.php?action=can_play&game_id=3');
+      if(!r.allowed){ alert('Add Breakout JS to your library first.'); location.href='../library.html'; }
+    })();
+  </script>
+
+  <script>
+    requireLoginOrRedirect();
+    const c=document.getElementById('bx'), ctx=c.getContext('2d');
+    let x=c.width/2, y=c.height-30, dx=2, dy=-2, r=8;
+    let ph=10, pw=75, px=(c.width-pw)/2, right=false, left=false;
+    let score=0, rows=3, cols=5, bw=75, bh=20, pad=10, top=30, leftOff=30;
+    const bricks=[]; for(let i=0;i<cols;i++){ bricks[i]=[]; for(let j=0;j<rows;j++){ bricks[i][j]={x:0,y:0,ok:1}; } }
+    document.addEventListener('keydown',e=>{ if(e.key==='ArrowRight') right=true; if(e.key==='ArrowLeft') left=true; });
+    document.addEventListener('keyup',e=>{ if(e.key==='ArrowRight') right=false; if(e.key==='ArrowLeft') left=false; });
+    function coll(){
+      for(let i=0;i<cols;i++){ for(let j=0;j<rows;j++){ const b=bricks[i][j]; if(b.ok){
+        if(x>b.x && x<b.x+bw && y>b.y && y<b.y+bh){ dy=-dy; b.ok=0; score+=10; document.getElementById('s').textContent=score; if(score===rows*cols*10) end(); }
+      }}}
+    }
+    function bricksDraw(){
+      for(let i=0;i<cols;i++){ for(let j=0;j<rows;j++){ if(bricks[i][j].ok){
+        const bx=(i*(bw+pad))+leftOff, by=(j*(bh+pad))+top; bricks[i][j].x=bx; bricks[i][j].y=by;
+        ctx.fillStyle='#6366f1'; ctx.fillRect(bx,by,bw,bh);
+      }}}
+    }
+    function ball(){ ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fillStyle='#ef4444'; ctx.fill(); ctx.closePath(); }
+    function pad(){ ctx.fillStyle='#10b981'; ctx.fillRect(px, c.height-ph, pw, ph); }
+    function draw(){
+      ctx.clearRect(0,0,c.width,c.height); bricksDraw(); ball(); pad(); coll();
+      if(x+dx>c.width-r || x+dx<r) dx=-dx;
+      if(y+dy<r) dy=-dy; else if(y+dy>c.height-r){ if(x>px && x<px+pw) dy=-dy; else return end(); }
+      if(right && px<c.width-pw) px+=5; else if(left && px>0) px-=5;
+      x+=dx; y+=dy; requestAnimationFrame(draw);
+    }
+    async function end(){
+      const fd=new FormData(); fd.append('game_id', 3); fd.append('score', score);
+      await fetch(__API_BASE__+'scores.php?action=submit', {method:'POST', body:fd});
+      alert('Game over! Score saved: '+score);
+    }
+    draw();
+  </script>
+</body>
+</html>
